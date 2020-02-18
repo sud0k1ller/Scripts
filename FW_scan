@@ -1,0 +1,82 @@
+#!/bin/bash
+
+
+# USAGE:
+#
+# ./FW_scan [0|4|6] <dest_ip_ipv4> <spoof_ip_ipv4> <dest_ip_ipv6> <spoof_ip_ipv6>
+#        0 - skanuj IPv4 i IPv6
+#        4 - skanuj IPv4
+#        6 - skanuj IPv6
+#
+#Każde wywołanie nmap używa przełączników
+#
+#   -T5 - najszybsze skanowanie
+#   -n - brak zapytań DNS
+#   -Pn - wstępnego skanowania ping
+#   --max-retries=1 - liczba prób retransmisji dla konkretnego portu
+#   -vv - wyświetlanie wszystkich informacji zwrotnych
+
+
+echo -e "===== PING ====="
+ping -c4 $2
+
+IP="4"
+ADD=$2;
+SPOOF_ADD=$3;
+CT="0";
+
+if [ "$1" -eq "6" ]; then
+    IP="6";
+    ADD=$2;
+    SPOOF_ADD=$3;
+fi    
+
+if [ "$1" -eq "0" ]; then
+    CT="1";
+fi
+
+for (( CT; CT>=0; CT-- )) 
+do
+        echo -e "\n===== DOMYŚLNY NMAP -$IP ====="
+        nmap -oA default_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -$IP --max-retries=1 $ADD 
+
+        echo -e "\n===== IP SPOOF NMAP -$IP ====="
+        nmap -oA spoof_ip_nmap_results_IPv$IP -e eth0 -vv -T5 -p- -n -Pn -$IP --max-retries=1 -S $SPOOF_ADD $ADD 
+
+        echo -e "\n===== FIREWALL-BYPASS SCRIPT NMAP -$IP ====="
+        nmap -oA script_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -$IP --max-retries=1 $ADD --script=firewall-bypass
+
+        echo -e "\n===== FIREWALK SCRIPT NMAP -$IP ====="
+        nmap -oA script_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -$IP --max-retries=1 --script=firewalk --traceroute $ADD 
+
+        echo -e "\n===== ACK NMAP -$IP ====="
+        nmap -oA ACK_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -sA -$IP --max-retries=1 $ADD
+
+        echo -e "\n===== WIN NMAP -$IP ====="
+        nmap -oA WIN_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -sW -$IP --max-retries=1 $ADD
+
+        echo -e "\n===== IDLE ZOMBIE NMAP -$IP ====="
+        nmap -oA IDLE_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -sI $SPOOF_ADD -$IP --max-retries=1 $ADD
+
+        echo -e "\n===== FIN NMAP -$IP ====="
+        nmap -oA FIN_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -sF -$IP --max-retries=1 $ADD
+
+        echo -e "\n===== NULL NMAP -$IP ====="
+        nmap -oA NULL_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -sN -$IP --max-retries=1 $ADD
+
+        echo -e "\n===== XMAS NMAP -$IP ====="
+        nmap -oA XMAS_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -sX -$IP --max-retries=1 $ADD
+
+        echo -e "\n===== FRAGMENTACJA NMAP -$IP ====="
+        nmap -oA fragmentation_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -ff -$IP --max-retries=1 $ADD
+
+        echo -e "\n===== UDP NMAP -$IP ====="
+        nmap -oA UDP_nmap_results_IPv$IP -vv -T5 -p- -n -Pn -$IP --max-retries=1 -sU $ADD
+
+        IP="6";
+        ADD=$4;
+        SPOOF_ADD=$5;
+        
+done
+
+echo "KONIEC"
