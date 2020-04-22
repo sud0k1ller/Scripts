@@ -1,0 +1,47 @@
+#!/bin/bash
+######    USAGE #####
+#
+#   $1 - nazwa ISO, które ma być modyfikowane
+#   $2 - nazwa pliku preseed, który ma być dodany do ISO
+#
+#   np.: ./change_preseed_and_regenerate_iso debian-10.3.0-amd64-DVD-1.iso custom_preseed_debian
+#
+
+nazwa_iso=$1
+nazwa_pliku_preseed=$2
+nazwa_katalogu_wypakowanego_iso="unpacked_iso"
+
+# WYPAKOWANIE ISO DO KATALOGU
+7z x $nazwa_iso -o$nazwa_katalogu_wypakowanego_iso
+echo "[+] Wypakowano ISO do folderu " + $nazwa_katalogu_wypakowanego_iso 
+
+# DODANIE PLIKU PRESEED.CFG DO ISO
+chmod +w -R ./$nazwa_katalogu_wypakowanego_iso
+echo 'Zmieniono uprawnienia'
+
+gunzip -k ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd.gz
+echo 'Wypakowano initrd'
+
+# TODO Dodać możliwość dodania pliku preseed o dowolnej nazwie
+# cp $2 /tmp
+# echo /tmp/preseed.cfg
+echo preseed.cfg | cpio -H newc -o -A -F ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd
+echo 'Nadpisano wartosc preseed.cfg'
+
+gzip ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd
+chmod -w -R ./$nazwa_katalogu_wypakowanego_iso/install.amd
+
+# AKTUALIZACJA PLIKU SUM KONTROLNYCH MD5SUM.TXT
+
+cd $nazwa_katalogu_wypakowanego_iso
+chmod +w md5sum.txt
+find -L -type f ! -name md5sum.txt -print0 | xargs -0 md5sum > md5sum.txt
+echo 'Wyliczono i poprawiono MD5' 
+chmod -w md5sum.txt
+cd ..
+
+# WYGENEROWANIE NOWEGO ISO ZE ZMODYFIKOWNYCH PLIKIEM PRESEED.TXT
+
+genisoimage -v -J -r -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -V CUSTOM_ISO -o custom_iso.iso unpacked_iso
+
+rm -r unpacked_iso
