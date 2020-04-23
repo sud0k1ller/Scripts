@@ -19,12 +19,13 @@ echo "[+] Wypakowano ISO do folderu " + $nazwa_katalogu_wypakowanego_iso
 chmod +w -R ./$nazwa_katalogu_wypakowanego_iso
 echo 'Zmieniono uprawnienia'
 
-gunzip -k ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd.gz
+gunzip ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd.gz
 echo 'Wypakowano initrd'
 
 # TODO Dodać możliwość dodania pliku preseed o dowolnej nazwie
 # cp $2 /tmp
 # echo /tmp/preseed.cfg
+cp preseed.cfg ./$nazwa_katalogu_wypakowanego_iso/simple-cdd/default.preseed
 echo preseed.cfg | cpio -H newc -o -A -F ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd
 echo 'Nadpisano wartosc preseed.cfg'
 
