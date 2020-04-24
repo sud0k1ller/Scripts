@@ -1,48 +1,57 @@
 #!/bin/bash
-######    USAGE #####
+#####################################################  USAGE  ########################################################
 #
-#   $1 - nazwa ISO, które ma być modyfikowane
-#   $2 - nazwa pliku preseed, który ma być dodany do ISO
+#   $1 - path to ISO file
+#   $2 - path to custom preseed file
 #
 #   np.: ./change_preseed_and_regenerate_iso debian-10.3.0-amd64-DVD-1.iso custom_preseed_debian
 #
+#   details found on https://wiki.debian.org/DebianInstaller/Preseed/EditIso#Extracting_the_Initrd_from_an_ISO_Image
+#
+######################################################################################################################
 
-nazwa_iso=$1
-nazwa_pliku_preseed=$2
-nazwa_katalogu_wypakowanego_iso="unpacked_iso"
+iso_name=$1
+preseed_name=$2
+unpacked_iso_directory_name="unpacked_iso"
 
-# WYPAKOWANIE ISO DO KATALOGU
-7z x $nazwa_iso -o$nazwa_katalogu_wypakowanego_iso
-echo "[+] Wypakowano ISO do folderu " + $nazwa_katalogu_wypakowanego_iso 
+### ISO UNPACKING
+7z x $iso_name -o$unpacked_iso_directory_name
+echo -e "\033[0;32m[+] ISO FILE UNPACKED TO: \033[0m" $unpacked_iso_directory_name 
 
-# DODANIE PLIKU PRESEED.CFG DO ISO
-chmod +w -R ./$nazwa_katalogu_wypakowanego_iso
-echo 'Zmieniono uprawnienia'
+### ADDING CUSTOM PRESEED FILE TO ISO AND MODYFYING ISO
+chmod +w -R $unpacked_iso_directory_name
+echo -e "\033[0;32m[+] DIRECTORY CHMOD CHANGED\033[0m"
+#gunzip $unpacked_iso_directory_name/install.amd/initrd.gz
+#echo -e "\033[0;32m[+] INITRD UNPACKED\033[0m"
 
-gunzip ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd.gz
-echo 'Wypakowano initrd'
+#####################################################################################################################
+######################### ANY ADDITIONAL CHANGES MUST BE DONE BETWEEN THOSE TWO LINES  ##############################
+#####################################################################################################################
 
-# TODO Dodać możliwość dodania pliku preseed o dowolnej nazwie
-# cp $2 /tmp
-# echo /tmp/preseed.cfg
-cp preseed.cfg ./$nazwa_katalogu_wypakowanego_iso/simple-cdd/default.preseed
-echo preseed.cfg | cpio -H newc -o -A -F ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd
-echo 'Nadpisano wartosc preseed.cfg'
+## TESTING ISOLINUX MODIFYING
+# FILES CHANGED IN ISOLINUX: splash.png / menu.cfg / isolinux.cfg / stdmenu.cfg
 
-gzip ./$nazwa_katalogu_wypakowanego_iso/install.amd/initrd
-chmod -w -R ./$nazwa_katalogu_wypakowanego_iso/install.amd
+cp -r /root/GIT/Scripts/isolinux $unpacked_iso_directory_name
 
-# AKTUALIZACJA PLIKU SUM KONTROLNYCH MD5SUM.TXT
+#####################################################################################################################
+######################### ANY ADDITIONAL CHANGES MUST BE DONE BETWEEN THOSE TWO LINES  ##############################
+#####################################################################################################################
 
-cd $nazwa_katalogu_wypakowanego_iso
+cp $preseed_name $unpacked_iso_directory_name/simple-cdd/default.preseed
+echo -e "\033[0;32m[+] PRESEED.CFG OVERWRITTEN\033[0m"
+#gzip $unpacked_iso_directory_name/install.amd/initrd
+#chmod -w -R $unpacked_iso_directory_name/install.amd
+
+### ACTUALIZATION OF MD5SUM.TXT
+cd $unpacked_iso_directory_name
 chmod +w md5sum.txt
 find -L -type f ! -name md5sum.txt -print0 | xargs -0 md5sum > md5sum.txt
-echo 'Wyliczono i poprawiono MD5' 
+echo -e "\033[0;32m[+] MD5FILE REGENERATED\033[0m" 
 chmod -w md5sum.txt
 cd ..
 
-# WYGENEROWANIE NOWEGO ISO ZE ZMODYFIKOWNYCH PLIKIEM PRESEED.TXT
-
-genisoimage -v -J -r -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -V CUSTOM_ISO -o custom_iso.iso unpacked_iso
+### NEW ISO GENERATING
+genisoimage -J -r -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -V CUSTOM_ISO -o custom_iso.iso unpacked_iso
+echo -e "\033[0;32m[+] CUSTOM ISO GENERATED\033[0m"
 
 rm -r unpacked_iso
