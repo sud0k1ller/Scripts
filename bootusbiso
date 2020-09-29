@@ -1,0 +1,162 @@
+#!/bin/bash
+
+#####################
+##### VARIABLES #####
+#####################
+
+iso_path=$1;
+dev_path=$2;
+
+
+#####################
+##### FUNCTIONS #####
+#####################
+
+exit_with_error()
+{
+    [ "$1" -eq 2 ] &&  echo -e "\e[31m[!] Wrong number of parameters!\e[0m" && print_usage;     #ERROR_CODE=2 - Wrong number of parameters 
+    [ "$1" -eq 3 ] &&  echo -e "\e[31m[!] ISO file not found!\e[0m";                            #ERROR_CODE=3 - File not found
+    [ "$1" -eq 4 ] &&  echo -e "\e[31m[!] USB device not found!\e[0m";                          #ERROR_CODE=4 - Device not found
+    [ "$1" -eq 5 ] &&  echo -e "\e[31m[!] Cannot list USB devices!\e[0m";                       #ERROR_CODE=5 - Device listing failed
+    [ "$1" -eq 6 ] &&  echo -e "\e[31m[!] Cannot list ISO images!\e[0m";                        #ERROR_CODE=6 - ISO images listing failed
+    [ "$1" -eq 111 ] &&  echo -e "\e[31m[!] Function under development!!\e[0m";                 #ERROR_CODE=111 - Function under development
+    
+    echo -e "\e[31m[!] Program exited with ERROR_CODE=$1\e[0m";
+    exit $1;
+}
+
+
+print_banner()
+{
+    echo "#######################################################################";
+    echo -e "########################### \e[31mSUD0\e[90mK1LLER\e[0m ################################";
+    echo "##                                                                    #";
+    echo "##      Bash script that creates bootable USB from ISO image          #";
+    echo "##                                                                    #";
+    echo "#######################################################################";
+    echo "#######################################################################";
+    echo " ";
+}
+
+
+print_usage()
+{
+    echo "################# USAGE #################";
+    echo "# ./bootusbiso <iso_path> <device_path> #";
+    echo "#########################################";
+    echo " ";
+}
+
+
+list_usb_devices()
+{
+    echo -e "List of available USB devices:\e[35m";
+    df | grep /media | awk '{print $1}' | sed 's/^/   /' && echo -e '\e[0m' || $(exit_with_error 5)
+}
+
+
+list_iso_files()
+{
+    echo -e "\nList of available ISO images in $1 directory: \e[34m";
+    ls $1 | grep '\.iso' | sed 's/^/   /' && echo -e "\e[0m"
+}
+
+
+set_iso_path()
+{
+    echo -n -e "Enter path where ISO images should be searched.\nLeave blank to search in current directory: "
+    read path_for_iso_search;
+    list_iso_files $path_for_iso_search;
+    echo -n -e "\n\e[34mEnter ISO image name to be used:\e[0m";
+    read -e -p ' ' iso_path;
+    
+    if [ ! -z "$path_for_iso_search" ]
+    then
+        iso_path="$path_for_iso_search""/""$iso_path"
+    fi
+}
+
+
+set_dev_path()
+{
+    list_usb_devices || exit_with_error 5;
+    echo -n -e "\e[35mEnter USB device to be used:\e[0m";
+    read -e -p ' ' dev_path
+}
+
+
+perform_iso_usb_building_with_known_iso_image_and_usb_device()
+{
+    echo -e "\e[92m[+] ISO image and USB device known!\e[0m";
+    echo -e "\e[92m[+] BULDING...\e[0m";
+    #dd bs=4M if="$1" of="$2" conv=fdatasync status=progress && echo -e "\n\e[92m[+] YOUR BOOTABLE USB IS READY!\e[0m"
+    echo "dd runs here iso: $1 dev: $2" && echo -e "\n\e[92m[+] YOUR BOOTABLE USB IS READY!\e[0m"
+        ## bs - count of bytes to read/write at a time
+        ## conv - convert the file as per the comma separated symbol list. 
+        ##        fdatasync - physically write output file data before finishing
+        ## status - level of information to print
+}
+
+
+perform_iso_usb_building_with_only_iso_or_usb_known()
+{
+    echo "$1" | grep -q "/dev/" # Check if passed argument contains /dev/ string that indicates on device
+    if [ "$?" -eq 0 ] 
+    then
+        echo -e "\e[33mOnly device name was passed!\e[0m";
+        dev_path="$1"
+        set_iso_path;  
+        perform_iso_usb_building_with_known_iso_image_and_usb_device "$iso_path" "$dev_path"
+    
+    else
+        echo -e "\e[33mOnly ISO image path was passed!\e[0m";
+        iso_path="$1"
+        set_dev_path;
+        perform_iso_usb_building_with_known_iso_image_and_usb_device "$iso_path" "$dev_path"
+    fi
+}
+
+
+perform_iso_usb_building_with_manual_iso_and_usb_choosing()
+{
+    echo -e "\e[33m[+] ISO image and USB device not known!\e[0m";
+    echo -e "\e[33m[+] Starting manual mode...\e[0m";
+    
+    set_iso_path;
+    set_dev_path;
+    echo -e "\n";
+    perform_iso_usb_building_with_known_iso_image_and_usb_device "$iso_path" "$dev_path"
+
+    exit 0;
+}
+
+
+################
+##### MAIN #####
+################
+
+print_banner
+
+if [ "$#" -gt 2 ] 
+    then
+        exit_with_error 2;
+
+    else
+        if [ "$#" -eq 2 ]
+        then
+            perform_iso_usb_building_with_known_iso_image_and_usb_device;
+        fi
+        
+        if [ -z "$1" ]
+        then
+            perform_iso_usb_building_with_manual_iso_and_usb_choosing
+        fi
+        
+        if [ -z "$2" ]
+        then    
+            perform_iso_usb_building_with_only_iso_or_usb_known "$1"
+        fi
+
+    exit 0;
+fi 
+
