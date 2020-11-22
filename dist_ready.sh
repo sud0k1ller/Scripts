@@ -60,7 +60,7 @@ echo " .........@00111101010001001101110@.......   Kali Linux Distribution    ..
 echo " ............@10111001100010101@..........   Customizing & Hardening    .."
 echo " ...............@00101110101@.............           Script             .."
 echo " ..................@10101@................................................"
-echo " .....................@.............................. 2019 ..............."
+echo " .....................@.............................. 2020 ..............."
 echo " ........................................................................."
 
 echo -e "\e[94m\n"
@@ -172,23 +172,17 @@ apt install ftp ||
 echo -e "\n      \e[34m--- WINE32 ---\e[39m"
 apt install wine32 ||
 {
-	error=1
+    error=1
     fail_print
 }
 
 
 echo -e "\n      \e[34m--- SECLISTS ---\e[39m"
+apt install seclists ||
 {
-	mkdir /root/Hacks/SecLists &&
-	git clone https://github.com/danielmiessler/SecLists.git /root/Hacks/SecLists &&
-	rm /root/Hack/SecLists/CON* &&
-	rm /root/Hack/SecLists/LICENSE &&
-	rm /root/Hack/SecLists/README.md
-
-} || {
-	    error=1
-        fail_print
-     }  
+    error=1
+    fail_print
+}  
 
 
 echo -e "\n      \e[34m--- RED HAWK ---\e[39m"
@@ -241,6 +235,14 @@ echo -e "\n      \e[34m--- LINUX-EXPLOIT-SUGGESTER-2 ---\e[39m"
 	    fail_print
      }  
 
+echo -e "\n      \e[34m--- LINPEAS ---\e[39m"
+{
+	wget https://raw.githubusercontent.com/carlospolop/privilege-escalation-awesome-scripts-suite/master/linPEAS/linpeas.sh
+
+} || {
+	    error=1
+	    fail_print
+     }
 
 echo -e "\n      \e[34m--- JOHN-THE-RIPPER-JUMBO ---\e[39m"
 {
